@@ -6,30 +6,73 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
+    name: Build and test VST3
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install JUCE Linux dependencies
+      - name: Install build tools and JUCE dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential cmake ninja-build pkg-config \
-            libasound2-dev libjack-jackd2-dev ladspa-sdk \
-            libfreetype6-dev libfontconfig1-dev libx11-dev libxcomposite-dev \
-            libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
-            libwebkit2gtk-4.0-dev libglu1-mesa-dev mesa-common-dev
+            build-essential \
+            gcc \
+            g++ \
+            cmake \
+            ninja-build \
+            pkg-config \
+            libasound2-dev \
+            libjack-jackd2-dev \
+            ladspa-sdk \
+            libfreetype6-dev \
+            libfontconfig1-dev \
+            libx11-dev \
+            libxcomposite-dev \
+            libxcursor-dev \
+            libxext-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxrender-dev \
+            libwebkit2gtk-4.0-dev \
+            libglu1-mesa-dev \
+            mesa-common-dev
 
-      - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Verify compiler and build tools
+        run: |
+          gcc --version
+          g++ --version
+          cmake --version
+          ninja --version
 
-      - name: Build
-        run: cmake --build build --config Release --parallel 2
+      - name: Configure CMake
+        env:
+          CC: /usr/bin/gcc
+          CXX: /usr/bin/g++
+        run: |
+          rm -rf build
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=/usr/bin/gcc \
+            -DCMAKE_CXX_COMPILER=/usr/bin/g++
+
+      - name: Build plugin and tests
+        run: |
+          cmake --build build --parallel 2
 
       - name: Run tests
-        run: ctest --test-dir build --output-on-failure
+        run: |
+          ctest --test-dir build --output-on-failure
 
+      - name: Upload VST3 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FRiKKTUNE-VST3-Linux
+          path: build/FRiKKTUNE_artefacts/Release/VST3/
+          if-no-files-found: error
