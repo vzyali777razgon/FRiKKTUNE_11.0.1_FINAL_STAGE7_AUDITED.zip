@@ -224,7 +224,9 @@ void FRiKKTUNEAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juc
             dryDelay[(size_t)ch][(size_t)dryDelayPosition] = in[ch];
         }
         dryDelayPosition = (dryDelayPosition + 1) % FRiKKTUNEPitchShifter::fftSize;
-        pitchShifter.processSample(in, shifted, channels, pitchRatio.getNextValue());
+        pitchShifter.setPitchRatio(pitchRatio.getNextValue());
+        for (int ch = 0; ch < channels; ++ch)
+            shifted[ch] = pitchShifter.processSample(ch, in[ch]);
         const float g = outputGain.getNextValue();
         const float wet = wetMix.getNextValue();
         const float bypass = bypassMix.getNextValue();
