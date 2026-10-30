@@ -3,17 +3,23 @@ cmake_minimum_required(VERSION 3.22)
 
 project(FRiKKTUNE VERSION 11.0.1 LANGUAGES C CXX)
 
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+include(CTest)
+
 option(FRIKKTUNE_BUILD_DETECTOR_TESTS "Build standalone pitch detector tests" ON)
-option(FRIKKTUNE_BUILD_PLUGIN "Build the JUCE VST3 plugin (requires JUCE download/source)" ON)
-option(FRIKKTUNE_BUILD_SHIFTER_TESTS "Build standalone phase-vocoder audio tests (test FFT shim only)" ON)
+option(FRIKKTUNE_BUILD_PLUGIN "Build the JUCE VST3 plugin" ON)
+option(FRIKKTUNE_BUILD_SHIFTER_TESTS "Build standalone phase-vocoder audio tests" ON)
 
 # --------------------------------------------------
 # Pitch Detector Tests
 # --------------------------------------------------
 
 if(FRIKKTUNE_BUILD_DETECTOR_TESTS)
-    enable_testing()
-
     add_executable(FRiKKTUNE_PitchDetectorTests
         Tests/PitchDetectorTests.cpp
     )
@@ -39,15 +45,13 @@ endif()
 # --------------------------------------------------
 
 if(FRIKKTUNE_BUILD_SHIFTER_TESTS)
-    enable_testing()
-
     add_executable(FRiKKTUNE_PitchShifterAudioTests
         Tests/PitchShifterAudioTests.cpp
     )
 
     target_include_directories(FRiKKTUNE_PitchShifterAudioTests
         BEFORE PRIVATE
-        Tests/juce_stub
+        "${CMAKE_CURRENT_SOURCE_DIR}/Tests/juce_stub"
     )
 
     target_compile_features(FRiKKTUNE_PitchShifterAudioTests PRIVATE cxx_std_17)
@@ -71,7 +75,6 @@ endif()
 # --------------------------------------------------
 
 if(FRIKKTUNE_BUILD_PLUGIN)
-
     include(FetchContent)
 
     FetchContent_Declare(
@@ -107,10 +110,8 @@ if(FRIKKTUNE_BUILD_PLUGIN)
     target_sources(FRiKKTUNE PRIVATE
         Source/PluginProcessor.cpp
         Source/PluginProcessor.h
-
         Source/PluginEditor.cpp
         Source/PluginEditor.h
-
         Source/PitchDetector.h
         Source/NoteQuantizer.h
         Source/PitchShifter.h
@@ -124,7 +125,6 @@ if(FRIKKTUNE_BUILD_PLUGIN)
         PRIVATE
             juce::juce_audio_utils
             juce::juce_dsp
-
         PUBLIC
             juce::juce_recommended_config_flags
             juce::juce_recommended_warning_flags
@@ -134,5 +134,4 @@ if(FRIKKTUNE_BUILD_PLUGIN)
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
     )
-
 endif()
