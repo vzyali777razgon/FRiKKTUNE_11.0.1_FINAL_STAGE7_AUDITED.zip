@@ -110,6 +110,27 @@ public:
     float getPhaseCoherence() const noexcept { return phaseCoherence; }
     int getLatencySamples() const noexcept { return fftSize; }
 
+    void processSample(const float* input, float* output, int channels, float ratio) noexcept
+    {
+        if (output == nullptr || channels <= 0)
+            return;
+
+        if (input == nullptr)
+        {
+            for (int ch = 0; ch < channels; ++ch)
+                output[ch] = 0.0f;
+            return;
+        }
+
+        setPitchRatio(ratio);
+        const int supportedChannels = juce::jmin(channels, numChannels);
+        for (int ch = 0; ch < supportedChannels; ++ch)
+            output[ch] = processSample(ch, input[ch]);
+
+        for (int ch = supportedChannels; ch < channels; ++ch)
+            output[ch] = input[ch];
+    }
+
     float processSample(int channel, float input) noexcept
     {
         channel = juce::jlimit(0, numChannels - 1, channel);
@@ -181,7 +202,7 @@ private:
         {
             double sum = 0.0;
             for (int n = start + lag; n < end; ++n)
-                sum += (double)frame[(size_t)n].real() * (double)frame[(size_t)(n - lag)].real();
+                sum += (double)frame[(size_t)n].real * (double)frame[(size_t)(n - lag)].real;
             autocorrelation[(size_t)lag] = sum;
         }
 
@@ -248,7 +269,7 @@ private:
 
         for (int n = start; n < end; ++n)
         {
-            const double x = frame[(size_t)n].real();
+            const double x = frame[(size_t)n].real;
             energy += x * x;
         }
 
@@ -258,8 +279,8 @@ private:
             double localEnergy = 0.0;
             for (int n = start + lag; n < end; ++n)
             {
-                const double a = frame[(size_t)n].real();
-                const double b = frame[(size_t)(n - lag)].real();
+                const double a = frame[(size_t)n].real;
+                const double b = frame[(size_t)(n - lag)].real;
                 correlation += a * b;
                 localEnergy += a * a + b * b;
             }
@@ -315,8 +336,8 @@ private:
 
             for (int k = 0; k < bins; ++k)
             {
-                const float re = out[(size_t)k].real();
-                const float im = out[(size_t)k].imag();
+                const float re = out[(size_t)k].real;
+                const float im = out[(size_t)k].imag;
                 const float magnitude = std::sqrt(re * re + im * im);
                 const float phase = std::atan2(im, re);
 
@@ -365,8 +386,8 @@ private:
 
             for (int k = 1; k < fftSize / 2; ++k)
             {
-                shifted[(size_t)(fftSize - k)].real(shifted[(size_t)k].real());
-                shifted[(size_t)(fftSize - k)].imag(-shifted[(size_t)k].imag());
+                shifted[(size_t)(fftSize - k)].real(shifted[(size_t)k].real);
+                shifted[(size_t)(fftSize - k)].imag(-shifted[(size_t)k].imag);
             }
 
             shifted[0].imag(0.0f);
@@ -377,7 +398,7 @@ private:
             for (int i = 0; i < fftSize; ++i)
             {
                 const int position = (writePosition + i) % ringSize;
-                const float y = in[(size_t)i].real() * window[(size_t)i] * 0.25f;
+                const float y = in[(size_t)i].real * window[(size_t)i] * 0.25f;
                 outputRing[(size_t)ch][(size_t)position] += y;
             }
         }
@@ -393,7 +414,7 @@ private:
 
         for (int k = 1; k < bins; ++k)
         {
-            const float magnitude = std::abs(frameSpectrum[0][(size_t)k].real());
+            const float magnitude = std::abs(frameSpectrum[0][(size_t)k].real);
             const float previous = previousMagnitude[0][(size_t)k];
             flux += std::max(0.0f, magnitude - previous);
             total += magnitude;
@@ -411,12 +432,12 @@ private:
 
         for (int k = 2; k < bins - 2; ++k)
         {
-            const float a = std::atan2(frameSpectrum[0][(size_t)k].imag(),
-                                       frameSpectrum[0][(size_t)k].real());
-            const float b = std::atan2(frameSpectrum[0][(size_t)(k - 1)].imag(),
-                                       frameSpectrum[0][(size_t)(k - 1)].real());
-            const float c = std::atan2(frameSpectrum[0][(size_t)(k + 1)].imag(),
-                                       frameSpectrum[0][(size_t)(k + 1)].real());
+            const float a = std::atan2(frameSpectrum[0][(size_t)k].imag,
+                                       frameSpectrum[0][(size_t)k].real);
+            const float b = std::atan2(frameSpectrum[0][(size_t)(k - 1)].imag,
+                                       frameSpectrum[0][(size_t)(k - 1)].real);
+            const float c = std::atan2(frameSpectrum[0][(size_t)(k + 1)].imag,
+                                       frameSpectrum[0][(size_t)(k + 1)].real);
             const float deviation = std::abs(wrapPhase(a - 0.5f * (b + c)));
             coherence += 1.0 - juce::jlimit(0.0f, 1.0f, deviation / juce::MathConstants<float>::pi);
             count += 1.0;
